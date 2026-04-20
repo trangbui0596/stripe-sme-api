@@ -292,6 +292,44 @@
     }
     .jira-view-btn:hover { background: #0047b3; }
 
+    /* ── Vote / feedback ── */
+    .vote-row {
+      display: flex; align-items: center; gap: 8px;
+      margin-top: 12px; padding-top: 10px;
+      border-top: 1px solid rgba(0,0,0,.06);
+    }
+    .vote-label { font-size: 11px; color: #aaa; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+    .vote-btn {
+      background: none; border: 1px solid #e0e0e0; border-radius: 6px;
+      padding: 4px 10px; font-size: 15px; cursor: pointer;
+      transition: all .15s; line-height: 1;
+    }
+    .vote-btn:hover { border-color: #635bff; background: #f0eeff; }
+    .vote-btn:disabled { opacity: .4; cursor: default; }
+    .vote-btn.voted-up   { background: #e6f9f0; border-color: #1a9e5c; }
+    .vote-btn.voted-down { background: #fff0ee; border-color: #e0523a; }
+    .vote-thanks { font-size: 12px; color: #1a9e5c; font-weight: 600; }
+
+    .vote-feedback {
+      display: none; margin-top: 10px;
+      background: #fff8f6; border: 1px solid #ffd5cc;
+      border-radius: 8px; padding: 12px 14px;
+    }
+    .vote-feedback.visible { display: block; }
+    .vote-feedback label { font-size: 11px; font-weight: 700; color: #e0523a; text-transform: uppercase; letter-spacing: .4px; display: block; margin-bottom: 6px; }
+    .vote-feedback textarea {
+      width: 100%; min-height: 64px; border: 1px solid #ffc5bb; border-radius: 6px;
+      padding: 8px 10px; font-size: 13px; font-family: inherit; resize: vertical;
+      background: white; color: #1a1a2e;
+    }
+    .vote-feedback textarea:focus { outline: none; border-color: #e0523a; }
+    .vote-submit-btn {
+      margin-top: 8px; background: #e0523a; color: white; border: none;
+      border-radius: 6px; padding: 7px 16px; font-size: 12px; font-weight: 700;
+      cursor: pointer; transition: background .15s;
+    }
+    .vote-submit-btn:hover { background: #c0392b; }
+
     /* error */
     .error-msg {
       background: #fff0ee; border: 1px solid #ffc5bb; border-radius: 8px;
@@ -490,7 +528,8 @@
 </div>
 
 <script>
-const API_URL   = "http://localhost:8000/ask";
+// ⚡ Update this to your Render URL after deploying the backend
+const API_URL   = "https://stripe-sme-api.onrender.com/ask";
 const MAX_TURNS = 3; // max follow-up rounds after initial answer
 
 const QUESTIONS = [
@@ -652,18 +691,24 @@ function renderThread(bubbles, showInput) {
           <div style="font-size:13px;color:#888;font-style:italic"><strong>Why this matters:</strong> ${fmt(b.whyItMatters)}</div>
         </div>`;
     } else if (b.kind === "answer") {
+      const vid = _nextVoteId++;
+      _voteData[vid] = { question: initialQuestion, response: b.text };
       html += `
         <div class="bubble api">
           <div class="bubble-label">✓ Stripe SME API — Concrete Answer</div>
           <div class="type-badge answer" style="margin-bottom:10px">Direct Answer</div>
           <div class="response-text">${fmt(b.text)}</div>
+          ${voteHtml(vid)}
         </div>`;
     } else if (b.kind === "escalation") {
+      const vid = _nextVoteId++;
+      _voteData[vid] = { question: initialQuestion, response: b.text };
       html += `
         <div class="bubble api">
           <div class="bubble-label">↑ Stripe SME API — Escalation</div>
           <div class="type-badge escalation" style="margin-bottom:10px">Escalation Required</div>
           <div class="response-text">${fmt(b.text)}</div>
+          ${voteHtml(vid)}
         </div>`;
     } else if (b.kind === "ticket-toast") {
       html += `
@@ -1009,6 +1054,67 @@ function fillSuggestion(chip) {
   chip.style.background = "#635bff";
   chip.style.color = "white";
   chip.style.borderColor = "#635bff";
+}
+
+// ── Vote state ─────────────────────────────────────────────────────────────
+let _nextVoteId = 0;
+const _voteData = {}; // id → { question, response }
+
+function voteHtml(id) {
+  return `
+    <div class="vote-row" id="vote-row-${id}">
+      <span class="vote-label">Helpful?</span>
+      <button class="vote-btn" id="vote-up-${id}"   onclick="castVote(${id},'up')">👍</button>
+      <button class="vote-btn" id="vote-down-${id}" onclick="castVote(${id},'down')">👎</button>
+      <span class="vote-thanks" id="vote-thanks-${id}" style="display:none"></span>
+    </div>
+    <div class="vote-feedback" id="vote-feedback-${id}">
+      <label>What was wrong or missing?</label>
+      <textarea id="vote-text-${id}" placeholder="e.g. The answer didn't account for our Custom Connect setup, or the escalation was premature…"></textarea>
+      <button class="vote-submit-btn" onclick="submitVoteFeedback(${id})">Submit — log as training data</button>
+    </div>`;
+}
+
+function castVote(id, rating) {
+  const upBtn   = document.getElementById(`vote-up-${id}`);
+  const downBtn = document.getElementById(`vote-down-${id}`);
+  const thanks  = document.getElementById(`vote-thanks-${id}`);
+
+  upBtn.disabled   = true;
+  downBtn.disabled = true;
+
+  if (rating === "up") {
+    upBtn.classList.add("voted-up");
+    thanks.textContent = "✓ Logged as training data — thanks!";
+    thanks.style.display = "inline";
+    postFeedback(id, "up", "");
+  } else {
+    downBtn.classList.add("voted-down");
+    document.getElementById(`vote-feedback-${id}`).classList.add("visible");
+  }
+}
+
+function submitVoteFeedback(id) {
+  const explanation = (document.getElementById(`vote-text-${id}`).value || "").trim();
+  postFeedback(id, "down", explanation);
+  document.getElementById(`vote-feedback-${id}`).innerHTML =
+    `<span class="vote-thanks">✓ Feedback logged as training data — thank you</span>`;
+}
+
+async function postFeedback(id, rating, explanation) {
+  const d = _voteData[id] || {};
+  try {
+    await fetch(API_URL.replace("/ask", "/feedback"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        question:    d.question    || "",
+        response:    d.response    || "",
+        rating,
+        explanation,
+      }),
+    });
+  } catch (_) { /* fail silently — feedback is best-effort */ }
 }
 
 // Boot

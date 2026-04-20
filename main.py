@@ -2,14 +2,19 @@
 Stripe SME API — FastAPI entrypoint.
 
 Routes:
-  POST /ask    Ask a question about the Stripe Services Agreement
-  GET  /health Health check
+  POST /ask       Ask a question about the Stripe Services Agreement
+  POST /feedback  Log a thumbs-up/down vote + optional explanation (training data)
+  GET  /health    Health check
 
 Run:
     uvicorn main:app --reload
 """
 
+import json
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+from pathlib import Path
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -19,6 +24,8 @@ load_dotenv()
 import retrieval
 import classifier
 import responder
+
+FEEDBACK_FILE = Path("data/feedback.jsonl")
 
 
 @asynccontextmanager
@@ -73,6 +80,28 @@ def ask(req: AskRequest):
         return responder.clarification(req.question, chunks)
     else:
         return responder.escalation(req.question, chunks)
+
+
+class FeedbackRequest(BaseModel):
+    question: str
+    response: str
+    rating: str        # "up" or "down"
+    explanation: str = ""
+
+
+@app.post("/feedback")
+def collect_feedback(req: FeedbackRequest):
+    record = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "question": req.question,
+        "response": req.response[:1000],
+        "rating": req.rating,
+        "explanation": req.explanation,
+    }
+    FEEDBACK_FILE.parent.mkdir(exist_ok=True)
+    with open(FEEDBACK_FILE, "a", encoding="utf-8") as f:
+        f.write(json.dumps(record) + "\n")
+    return {"status": "logged"}
 
 
 @app.get("/health")
