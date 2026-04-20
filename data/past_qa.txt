@@ -1,0 +1,147 @@
+NEXAPAY — PAST STRIPE QUESTIONS AND RESOLUTIONS
+Source: Internal Slack #stripe-questions archive and compliance log
+
+These are real questions previously asked by NexaPay's engineering and operations team, with the resolutions reached. They represent institutional knowledge about how Stripe rules apply to NexaPay's specific setup.
+
+---
+
+TOPIC: Dispute Deduction — Platform vs Connected Account Balance
+Date: March 2023 | Asked by: Backend engineer | Channel: #stripe-questions
+
+Question: If a merchant disputes a transaction and we lose, does Stripe deduct from our platform balance or from the connected account's balance?
+Resolution: Under our Custom account model, Stripe deducts dispute amounts from the connected account's balance first. If the connected account balance is insufficient, Stripe pulls from NexaPay's platform balance. This is different from Standard account behaviour. We confirmed this with our Stripe account manager in March 2023. Engineering added a reserve buffer requirement of SGD 500 minimum balance per connected account to reduce platform exposure.
+Outcome: Policy implemented. Connected accounts with <SGD 500 balance now trigger an internal alert.
+
+---
+
+TOPIC: Payout Schedule Changes — Merchant Consent Requirements
+Date: June 2023 | Asked by: Operations team | Channel: #stripe-questions
+
+Question: Can we change a connected account's payout schedule without the merchant's consent?
+Resolution: Under Custom accounts, NexaPay controls payout scheduling and can modify it programmatically via the Stripe API without merchant-facing consent flows — because NexaPay, not Stripe, holds the merchant relationship. However, NexaPay's own merchant terms (Section 4.2) require 7 days written notice for payout schedule changes. Legal confirmed we are contractually obligated to provide notice even if Stripe does not require it.
+Outcome: Operations team must issue notice via email template before modifying payout schedules.
+
+---
+
+TOPIC: Refund Processing Fee Retention — SGD 12,000 Case Study
+Date: August 2023 | Asked by: Finance team | Channel: #stripe-questions
+
+Question: We had a merchant refund a SGD 12,000 transaction. Do we lose the Stripe processing fee on that?
+Resolution: Yes. Stripe does not return processing fees on refunded transactions for merchants on our pricing plan (blended rate). The SGD 12,000 refund was processed and Stripe retained the original fee (~SGD 362 at our 2.9% + SGD 0.50 rate). Finance updated the P&L model to treat refund processing fees as a non-recoverable cost.
+Outcome: Finance model updated. Merchants are now informed of this in NexaPay's refund policy disclosure.
+
+---
+
+TOPIC: Indonesian Merchant USD Payout Request — Currency Settlement Constraints
+Date: October 2023 | Asked by: Backend engineer | Channel: #stripe-questions
+
+Question: One of our Indonesian merchants wants to receive payouts in USD, not IDR. Is that possible via Stripe?
+Resolution: No. Stripe settles connected accounts in the currency of the country where the connected account is located. Our Indonesian connected accounts settle in IDR only. USD settlement is not available for Indonesia-based accounts under our current Stripe agreement. The merchant was informed and we explored a separate FX conversion layer — not yet implemented.
+Outcome: IDR-only payout constraint documented in merchant onboarding FAQ.
+
+---
+
+TOPIC: Stripe Risk-Triggered Payout Hold — Notice and Communication Protocol
+Date: January 2024 | Asked by: Operations team | Channel: #stripe-questions
+
+Question: Stripe flagged one of our accounts for "elevated risk" and reduced their payout to weekly. Did Stripe need to tell us first?
+Resolution: Stripe's Services Agreement allows Stripe to modify payout schedules for risk reasons without prior notice to the platform. Stripe notified us via email after the change was made. Under our Custom account model, we are responsible for communicating this to the merchant — Stripe does not contact the merchant directly. Operations team created a template for merchant notification in these scenarios.
+Outcome: Escalation template created. Risk-triggered payout changes now trigger an automated merchant notification from NexaPay within 4 hours.
+
+---
+
+TOPIC: Merchant-to-Merchant Transfers via Connect — MAS Licensing Boundary
+Date: March 2024 | Asked by: Product manager | Channel: #stripe-questions
+
+Question: We want to test a feature where merchants can pay each other (merchant A pays merchant B through our platform). Is this allowed?
+Resolution: This is possible via Stripe Connect's "transfer" functionality, but it requires careful structuring. Stripe reviewed our use case and confirmed that platform-to-connected-account and connected-account-to-connected-account transfers are permitted under our agreement, as long as NexaPay is the platform orchestrating the transfer and the funds originate from legitimate payment activity. We cannot facilitate peer-to-peer transfers that look like a money transmission service without additional MAS licensing. Legal and Stripe account manager both reviewed this in April 2024.
+Outcome: Feature approved for development. Went live in July 2024 with volume limits of SGD 10,000 per transfer pending further review.
+
+---
+
+TOPIC: MAS Complaint Threat — Platform-Level Settlement Freeze Risk
+Date: May 2024 | Asked by: CEO | Channel: #stripe-questions
+
+Question: A merchant is claiming they never agreed to our terms and are threatening to report us to MAS. Can Stripe freeze our entire platform's settlements because of one merchant dispute?
+Resolution: Stripe has the right to suspend or restrict settlement for the platform account if they determine there is elevated risk — this is not limited to the individual connected account. However, a single merchant dispute claiming they didn't agree to our terms is unlikely to trigger a platform-level freeze unless Stripe determines NexaPay itself is in breach of the Services Agreement. We notified our Stripe account manager proactively. They confirmed no platform-level action was being considered. The merchant dispute was resolved through NexaPay's internal dispute process.
+Outcome: No Stripe action taken. Incident documented. Legal reviewed and strengthened merchant terms acceptance flow (explicit checkbox added to onboarding).
+
+---
+
+TOPIC: Restricted Business Incident — Malaysia Logistics Merchant, November 2024
+Date: November 2024 | Asked by: Compliance team | Channel: #compliance-incidents
+
+Question: We discovered a merchant (a logistics company in Malaysia) has been processing payments for a freight forwarding business that appears on Stripe's restricted list. We didn't catch this during onboarding because the MCC was set as "courier services." What do we do?
+Resolution: This triggered NexaPay's Incident Response procedure. Steps taken:
+  - CCO (Jane Lim) notified immediately
+  - Connected account payouts suspended within 90 minutes of discovery
+  - Review found the merchant had expanded business scope post-onboarding without notifying NexaPay
+  - Stripe account manager notified within 24 hours per our agreement
+  - After internal investigation, account was terminated. SGD 18,400 in processed volume reviewed; no chargebacks identified
+  - Post-incident: gap identified in our MCC monitoring (actual transaction types vs declared category)
+  - Remediation project initiated to add category-level transaction monitoring
+Outcome: Account terminated. Compliance gap logged. Remediation in progress.
+
+---
+
+TOPIC: BNPL Credit Risk Ownership — Klarna via Stripe
+Date: January 2025 | Asked by: CFO | Channel: #stripe-questions
+
+Question: For our BNPL evaluation — if we enable Klarna via Stripe, who bears the credit risk, us or Stripe?
+Resolution: Neither NexaPay nor the merchant bears the credit risk for BNPL transactions processed via Stripe's BNPL integrations (Klarna, Afterpay). The BNPL provider (e.g., Klarna) bears the consumer credit risk and pays the merchant upfront (via Stripe). NexaPay/merchant still bears Stripe processing fees (which are higher for BNPL, typically 3.5–5.9% depending on provider and volume). NexaPay would need Stripe to enable BNPL payment methods on our platform account — this requires a request to our Stripe account manager and review of our merchant categories for BNPL eligibility.
+Outcome: CFO confirmed BNPL is financially viable for NexaPay's margin structure above SGD 200 average order value. Atome conversations prioritised as non-Stripe option with potentially better rates.
+
+---
+
+TOPIC: Atome Direct Integration — Stripe Notification Obligation
+Date: February 2025 | Asked by: Legal team | Channel: #stripe-questions
+
+Question: If we sign with Atome directly (not via Stripe), do we need to inform Stripe?
+Resolution: No obligation to inform Stripe about a direct Atome integration, as long as BNPL payments processed via Atome do not flow through Stripe. If Atome settles funds directly to NexaPay's DBS account (Singapore) and Maybank account (Malaysia) — not via Stripe — this is outside Stripe's Services Agreement entirely. However, if NexaPay uses Stripe's infrastructure to route Atome payments (e.g., using Stripe as the acquirer), then Stripe's terms apply. Legal confirmed direct Atome settlement avoids Stripe's BNPL fee structures and additional terms.
+Outcome: Atome direct integration is preferred path. Term sheet under review.
+
+---
+
+TOPIC: Atome Direct Integration — Engineering Next Steps and Timeline
+Date: March 2025 | Asked by: Backend engineering lead | Channel: #payments-eng
+
+Context: NexaPay is integrating Atome directly (not via Stripe). Active in Singapore and Malaysia. Atome term sheet under legal review. Average merchant order value is SGD 180–400.
+Resolution: The following steps were agreed between engineering, legal, and finance:
+  Step 1 — Legal sign-off on term sheet (owner: Legal, Jane Lim). Target: end of April 2025. Blocker: clarification needed on Atome's chargeback liability clause for Malaysia merchants.
+  Step 2 — API integration scoping. Atome uses a REST API with HMAC-SHA256 request signing. Engineering estimated 3–4 sprints. Atome provided sandbox credentials in February 2025.
+  Step 3 — Eligibility configuration. Atome requires: min order value SGD 50, max SGD 2,000, consumer must be Singapore or Malaysia resident. Engineering must pass merchant category code (MCC) to Atome on each transaction — Atome rejects transactions from restricted MCCs on their side.
+  Step 4 — Merchant disclosure update. NexaPay's merchant terms must be updated to disclose BNPL as a payment option and Atome's data sharing requirements (consumer data shared with Atome for credit decisioning).
+  Step 5 — Finance reconciliation. Atome settles T+1 directly to NexaPay's DBS account (Singapore) and Maybank account (Malaysia). Finance must update reconciliation flow — Atome payments will not appear in Stripe dashboard.
+  Step 6 — Compliance review. Atome integration must be reviewed by CCO for MAS compliance (consumer credit advertising rules apply to BNPL in Singapore as of 2024).
+Outcome: Engineering kickoff scheduled for May 2025 pending legal sign-off.
+
+---
+
+TOPIC: Post-Incident Review — Restricted Merchant Remediation and Remaining Gaps
+Date: December 2024 | Asked by: CCO Jane Lim | Channel: #compliance-incidents
+
+Context: Following the November 2024 incident where a Malaysia logistics merchant expanded into freight forwarding (Stripe-restricted category) without notifying NexaPay.
+Resolution — Actions taken:
+  1. Post-incident review completed December 2024. Root cause: merchant business scope changed post-onboarding; NexaPay's monitoring only checks MCC at onboarding, not on an ongoing basis.
+  2. Immediate fix: manual quarterly review cadence for all logistics and freight-adjacent merchants (MCCs 4215, 4731, 4783) added to compliance calendar.
+  3. Stripe account manager notified. Stripe confirmed no platform-level action because: (a) NexaPay followed incident response procedure correctly, (b) onboarding KYC was complete and documented, (c) NexaPay self-reported promptly. This outcome is directly attributable to the quality of our onboarding documentation.
+  4. Merchant account terminated. SGD 18,400 in processed volume reviewed — no consumer chargebacks, no fraud identified. Stripe confirmed no clawback required given documented compliance trail.
+Remaining gaps — remediation in progress:
+  - Transaction category monitoring: engineering sprint to cross-check actual transaction MCCs against declared business category. ETA: June 2025.
+  - Merchant attestation: annual business scope re-attestation form to be added to merchant portal. ETA: May 2025.
+  - Automated Stripe restricted list sync: currently manual monthly check; moving to automated weekly diff against stripe.com/en-sg/legal/restricted-businesses. ETA: July 2025.
+Key lesson: NexaPay's strong onboarding documentation was the primary reason Stripe took no platform-level action. This would not have been the case if KYC records were incomplete.
+
+---
+
+TOPIC: Platform Settlement Freeze — Response Options and Escalation Path
+Date: January 2025 | Asked by: CFO | Channel: #stripe-questions
+
+Question: If a restricted merchant incident happens again and Stripe does take platform-level action (freezing settlements), what are our options?
+Resolution: Based on Stripe's Services Agreement and our account manager's guidance:
+  Option 1 — Immediate remediation: Terminate the violating connected account and provide Stripe with full documentation of the violation, your investigation, and corrective actions taken. Stripe's standard practice is to lift holds within 3–5 business days if the platform demonstrates the violation is isolated and remediation is underway.
+  Option 2 — Escalation to Stripe account manager: NexaPay has a named account manager (APAC SMB team). Direct escalation with documentation package (onboarding records, incident timeline, corrective actions) bypasses standard support queue. Our account manager confirmed this is the correct escalation path.
+  Option 3 — Reserve negotiation: If Stripe imposes a reserve rather than a full freeze, NexaPay can negotiate the reserve amount and duration by providing transaction history, chargeback rate, and compliance documentation. A reserve is preferable to a freeze as it allows continued operations.
+  Option 4 — Legal review: If Stripe's action appears disproportionate or in breach of the SSA's notice provisions, legal counsel should review whether Stripe has followed its own termination/suspension procedures (Section 10 of the SSA requires written notice for termination except in cases of material breach).
+  Preventive measure: Maintaining complete onboarding documentation and incident response records is the single most effective protection against disproportionate Stripe action.
+Outcome: CFO approved budget for external payments legal counsel retainer (SGD 5,000/month) as insurance against platform-level Stripe actions.

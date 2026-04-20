@@ -1,0 +1,48 @@
+COMPANY PROFILE — NexaPay Pte. Ltd.
+Source: Internal Company Context
+
+OVERVIEW
+NexaPay is a Singapore-incorporated B2B payments platform founded in 2022, serving small and medium-sized merchants across Southeast Asia. The company enables businesses to accept payments online, manage payouts to suppliers, and embed financial services into their own platforms. NexaPay is regulated under the Monetary Authority of Singapore (MAS) Payment Services Act as a Major Payment Institution.
+
+STRIPE INTEGRATION DETAILS
+- Stripe account type: Platform using Stripe Connect (Custom accounts)
+- Primary Stripe entity: Stripe Technology Europe Limited (Singapore branch)
+- Agreement jurisdiction: Singapore (stripe.com/en-sg/legal)
+- Account opened: March 2023
+- Connected account model: Custom accounts — NexaPay controls onboarding UX, KYC/KYB, and compliance monitoring for all sub-merchants
+- Payout schedule: T+2 rolling basis for connected accounts
+- Reserve status: No reserve currently imposed by Stripe; last reviewed February 2025
+
+MARKETS AND CURRENCIES CURRENTLY ACTIVE
+- Singapore (SGD) — primary market, 60% of GMV
+- Malaysia (MYR) — live since Q3 2023
+- Indonesia (IDR) — live since Q1 2024
+- Thailand (THB) — launched Q4 2024, still in growth phase
+- International merchants billed in USD (approximately 8% of volume)
+
+PAYMENT METHODS CURRENTLY ENABLED
+- Visa and Mastercard (credit and debit)
+- PayNow (Singapore)
+- FPX (Malaysia)
+- GrabPay (Singapore and Malaysia)
+- Bank transfers via Stripe
+
+BNPL STATUS AS OF APRIL 2025
+NexaPay has been evaluating buy now, pay later (BNPL) options for its merchant base. Internal discussions and external partner conversations to date:
+- Atome: Initial conversations held in November 2024. Atome confirmed NexaPay merchants in Singapore and Malaysia are eligible. Term sheet under review by NexaPay legal team as of March 2025. No contract signed.
+- Grab PayLater: Integration scoping completed in January 2025. Grab requires a minimum monthly GMV of SGD 500,000 per merchant — most NexaPay merchants fall below this threshold. Deprioritised.
+- Rely (Singapore BNPL): Introductory call completed February 2025. Awaiting Rely's merchant eligibility criteria documentation.
+- Stripe Klarna / Afterpay via Stripe: Not yet evaluated. Would require Stripe to enable BNPL methods on NexaPay's platform account — this has not been requested yet.
+- No BNPL provider contract has been signed. No BNPL method is live on the platform.
+
+CONNECTED ACCOUNT DETAILS
+- Total connected accounts: 847 live merchants as of March 2025
+- Account types: All Custom accounts
+- Geographic distribution: 512 Singapore, 201 Malaysia, 98 Indonesia, 36 Thailand
+- Industries served: F&B (28%), retail (24%), professional services (19%), logistics (14%), education (9%), other (6%)
+- Highest GMV merchant: SGD 4.2M/month (retail, Singapore)
+
+ENGINEERING TEAM SIZE AND STRUCTURE
+- 14 engineers total (8 backend, 3 frontend, 2 DevOps, 1 data)
+- Payments integration owned by backend squad (3 engineers)
+- Primary Stripe contact: Stripe account manager (APAC SMB team)

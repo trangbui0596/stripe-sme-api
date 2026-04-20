@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stripe SME API — Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f6fa;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1a2e;
+      color: white;
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header .brand { font-size: 18px; font-weight: 700; }
+    header .brand span { color: #635bff; }
+    header .subtitle { font-size: 13px; color: #8892b0; }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+
+    .intro {
+      background: white;
+      border-radius: 12px;
+      padding: 24px 28px;
+      margin-bottom: 28px;
+      border-left: 4px solid #635bff;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+    }
+    .intro h2 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+    .intro p  { font-size: 14px; color: #555; line-height: 1.6; }
+
+    /* nav */
+    .question-nav { display: flex; gap: 10px; margin-bottom: 28px; flex-wrap: wrap; }
+    .q-btn {
+      padding: 10px 18px; border-radius: 8px; border: 2px solid #e0e0e0;
+      background: white; font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: all .15s; color: #444; text-align: left;
+    }
+    .q-btn:hover { border-color: #635bff; color: #635bff; }
+    .q-btn.active { background: #635bff; border-color: #635bff; color: white; }
+    .q-btn .camp-label { display: block; font-size: 10px; font-weight: 500; opacity: .75; margin-bottom: 2px; }
+
+    /* question box */
+    .question-box {
+      background: #1a1a2e; color: white; border-radius: 12px;
+      padding: 20px 24px; margin-bottom: 24px;
+      display: flex; align-items: flex-start; gap: 14px;
+    }
+    .question-box .q-icon { font-size: 22px; margin-top: 2px; }
+    .question-box .q-meta { font-size: 11px; color: #8892b0; margin-bottom: 4px; font-weight: 500; text-transform: uppercase; letter-spacing: .5px; }
+    .question-box .q-text { font-size: 16px; font-weight: 500; line-height: 1.5; }
+
+    /* comparison grid */
+    .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; align-items: start; }
+    @media (max-width: 768px) { .comparison { grid-template-columns: 1fr; } }
+
+    .panel { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+    .panel-header {
+      padding: 14px 20px; font-size: 12px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .6px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .panel-header .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .panel.generic   .panel-header { background: #f8f8f8; color: #888; border-bottom: 1px solid #eee; }
+    .panel.generic   .dot          { background: #bbb; }
+    .panel.specialist .panel-header{ background: #f0eeff; color: #635bff; border-bottom: 1px solid #e5e0ff; }
+    .panel.specialist .dot         { background: #635bff; }
+    .panel-body { padding: 20px; min-height: 160px; }
+
+    /* badges */
+    .type-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 20px; font-size: 11px;
+      font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 14px;
+    }
+    .type-badge.answer        { background: #e6f9f0; color: #1a9e5c; }
+    .type-badge.clarification { background: #fff8e1; color: #e6a817; }
+    .type-badge.escalation    { background: #fff0ee; color: #e0523a; }
+    .type-badge.resolved      { background: #eef0ff; color: #635bff; }
+
+    /* text */
+    .response-text { font-size: 14px; line-height: 1.7; color: #333; white-space: pre-wrap; }
+
+    /* clarify block */
+    .clarify-block {
+      background: #fffbf0; border: 1px solid #ffe0a0; border-radius: 8px;
+      padding: 14px 16px; margin-bottom: 16px;
+    }
+    .clarify-block .cq-label  { font-size: 11px; font-weight: 700; color: #b07800; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px; }
+    .clarify-block .cq-text   { font-size: 14px; color: #333; line-height: 1.6; margin-bottom: 10px; }
+    .clarify-block .why-label { font-size: 11px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 4px; }
+    .clarify-block .why-text  { font-size: 13px; color: #666; line-height: 1.5; font-style: italic; }
+
+    /* conversation thread */
+    .thread { display: flex; flex-direction: column; gap: 12px; }
+
+    .bubble {
+      border-radius: 10px; padding: 12px 14px;
+      font-size: 14px; line-height: 1.6;
+    }
+    .bubble-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .4px; margin-bottom: 6px;
+    }
+    .bubble.user { background: #f0eeff; border: 1px solid #d8d2ff; }
+    .bubble.user .bubble-label { color: #635bff; }
+    .bubble.api  { background: #f8fffe; border: 1px solid #c3efe0; }
+    .bubble.api  .bubble-label { color: #1a9e5c; }
+    .bubble.api-clarify { background: #fffbf0; border: 1px solid #ffe0a0; }
+    .bubble.api-clarify .bubble-label { color: #b07800; }
+
+    /* reply input */
+    .reply-area { margin-top: 16px; }
+    .reply-area label {
+      display: block; font-size: 12px; font-weight: 600; color: #635bff;
+      margin-bottom: 8px; text-transform: uppercase; letter-spacing: .4px;
+    }
+    .reply-area textarea {
+      width: 100%; min-height: 80px; border: 2px solid #e0e0e0; border-radius: 8px;
+      padding: 10px 12px; font-size: 14px; font-family: inherit; color: #1a1a2e;
+      resize: vertical; transition: border-color .15s; line-height: 1.5;
+    }
+    .reply-area textarea:focus { outline: none; border-color: #635bff; }
+    .reply-area textarea::placeholder { color: #aaa; }
+
+    .btn-row { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+
+    .reply-btn {
+      background: #635bff; color: white; border: none; border-radius: 8px;
+      padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: background .15s; display: flex; align-items: center; gap: 8px;
+    }
+    .reply-btn:hover:not(:disabled) { background: #4e46e5; }
+    .reply-btn:disabled { background: #bbb; cursor: not-allowed; }
+
+    .reset-btn {
+      background: none; border: 1px solid #e0e0e0; border-radius: 8px;
+      padding: 10px 16px; font-size: 13px; font-weight: 600; color: #888;
+      cursor: pointer; transition: all .15s;
+    }
+    .reset-btn:hover { border-color: #635bff; color: #635bff; }
+
+    /* depth indicator */
+    .depth-indicator {
+      font-size: 11px; color: #aaa; margin-top: 8px; text-align: right;
+    }
+
+    /* quick-fill suggestions */
+    .suggestions {
+      display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;
+    }
+    .suggestions-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .5px; color: #aaa; margin-bottom: 6px;
+    }
+    .suggestion-chip {
+      background: #f0eeff; border: 1px solid #d8d2ff; border-radius: 20px;
+      padding: 5px 12px; font-size: 12px; color: #635bff; font-weight: 500;
+      cursor: pointer; transition: all .15s; line-height: 1.4; text-align: left;
+    }
+    .suggestion-chip:hover { background: #635bff; color: white; border-color: #635bff; }
+
+    /* loading */
+    .loading { display: flex; align-items: center; gap: 10px; color: #888; font-size: 14px; padding: 20px 0; }
+    .spinner {
+      width: 18px; height: 18px; border: 2px solid #e0e0e0;
+      border-top-color: #635bff; border-radius: 50%;
+      animation: spin .7s linear infinite; flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* insight */
+    .insight-bar {
+      background: white; border-radius: 12px; padding: 18px 24px;
+      border-left: 4px solid #1a9e5c; box-shadow: 0 1px 4px rgba(0,0,0,.07); display: none;
+    }
+    .insight-bar.visible { display: block; }
+    .insight-bar h4 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #1a9e5c; margin-bottom: 6px; }
+    .insight-bar p  { font-size: 14px; color: #444; line-height: 1.6; }
+
+    /* ── Jira CTA button (inside thread) ── */
+    .jira-cta {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #fff; border: 1.5px solid #0052cc; border-radius: 8px;
+      padding: 12px 16px; margin-top: 4px; gap: 12px;
+      animation: fadeSlideIn .4s ease;
+    }
+    .jira-cta-left { display: flex; align-items: center; gap: 10px; }
+    .jira-logo {
+      width: 28px; height: 28px; border-radius: 6px;
+      background: #0052cc; display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0;
+    }
+    .jira-cta-text { font-size: 13px; color: #333; line-height: 1.4; }
+    .jira-cta-text strong { color: #0052cc; }
+    .jira-cta-text small { display: block; font-size: 11px; color: #888; margin-top: 2px; }
+    .jira-open-btn {
+      background: #0052cc; color: white; border: none; border-radius: 6px;
+      padding: 8px 14px; font-size: 12px; font-weight: 700; cursor: pointer;
+      white-space: nowrap; transition: background .15s; flex-shrink: 0;
+    }
+    .jira-open-btn:hover { background: #0047b3; }
+
+    /* ── Jira ticket card (full-width) ── */
+    #jira-ticket-section {
+      display: none; margin-top: 16px;
+      animation: fadeSlideIn .5s ease;
+    }
+    #jira-ticket-section.visible { display: block; }
+
+    .jira-card { background: white; border-radius: 12px; box-shadow: 0 1px 8px rgba(0,0,0,.1); overflow: hidden; }
+
+    .jira-card-header {
+      background: #0052cc; color: white;
+      padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .jira-header-left { display: flex; align-items: center; gap: 10px; }
+    .jira-badge {
+      background: rgba(255,255,255,.2); font-size: 11px; font-weight: 700;
+      padding: 3px 8px; border-radius: 4px; letter-spacing: .3px;
+    }
+    .jira-ticket-key { font-size: 13px; color: rgba(255,255,255,.75); font-family: monospace; }
+    .jira-status-chip {
+      display: flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,.15); border-radius: 20px;
+      padding: 4px 10px; font-size: 11px; font-weight: 600; color: #fca5a5;
+    }
+    .jira-status-dot { width: 6px; height: 6px; border-radius: 50%; background: #ef4444; }
+
+    .jira-creating {
+      padding: 16px 20px; display: flex; align-items: center; gap: 10px;
+      font-size: 13px; color: #888; background: #f0f5ff; border-bottom: 1px solid #e0eaff;
+    }
+    .jira-creating .spinner { border-top-color: #0052cc; }
+
+    .jira-body { padding: 20px 24px; }
+    .jira-issue-title { font-size: 17px; font-weight: 700; color: #1a1a2e; margin-bottom: 16px; line-height: 1.4; }
+
+    .jira-meta {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #f0f0f0;
+    }
+    .jira-meta-item { display: flex; flex-direction: column; gap: 4px; }
+    .jira-meta-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #aaa; }
+    .jira-meta-value { font-size: 13px; color: #333; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+    .jira-avatar {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #0052cc; color: white; font-size: 10px;
+      font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .jira-priority-critical { color: #e0523a; font-weight: 600; }
+
+    .jira-labels { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+    .jira-label {
+      padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600;
+      background: #e9f0ff; color: #0052cc;
+    }
+
+    .jira-section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #aaa; margin-bottom: 8px; }
+    .jira-description {
+      background: #f8f9fc; border-radius: 8px; padding: 14px 16px;
+      font-size: 13px; line-height: 1.7; color: #444; white-space: pre-wrap;
+      margin-bottom: 20px; max-height: 180px; overflow-y: auto;
+    }
+
+    .jira-api-note {
+      background: #f0f5ff; border: 1px solid #c0d5ff; border-radius: 8px;
+      padding: 12px 16px; font-size: 12px; color: #0052cc; line-height: 1.6;
+      margin-bottom: 20px; display: flex; align-items: flex-start; gap: 8px;
+    }
+    .jira-api-note .note-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+    .jira-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 24px; border-top: 1px solid #f0f0f0; background: #fafafa;
+    }
+    .jira-footer-note { font-size: 12px; color: #aaa; }
+    .jira-view-btn {
+      background: #0052cc; color: white; border: none; border-radius: 8px;
+      padding: 9px 18px; font-size: 13px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; gap: 6px; transition: background .15s;
+    }
+    .jira-view-btn:hover { background: #0047b3; }
+
+    /* error */
+    .error-msg {
+      background: #fff0ee; border: 1px solid #ffc5bb; border-radius: 8px;
+      padding: 14px 16px; font-size: 13px; color: #c0392b; line-height: 1.6;
+    }
+
+    /* ── Ticket toast (inside thread) ── */
+    .ticket-toast {
+      display: flex; align-items: center; gap: 10px;
+      background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px;
+      padding: 10px 14px; font-size: 13px; color: #166534; margin-top: 4px;
+      animation: fadeSlideIn .4s ease;
+    }
+    .ticket-toast .toast-icon { font-size: 16px; flex-shrink: 0; }
+    .ticket-toast a {
+      color: #166534; font-weight: 700; text-decoration: underline; cursor: pointer;
+    }
+
+    /* ── Ticket card (full-width, below comparison) ── */
+    #ticket-section {
+      display: none; margin-top: 24px;
+      animation: fadeSlideIn .5s ease;
+    }
+    #ticket-section.visible { display: block; }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .ticket-card {
+      background: white; border-radius: 12px;
+      box-shadow: 0 1px 8px rgba(0,0,0,.1); overflow: hidden;
+    }
+
+    .ticket-header {
+      background: #1a1a2e; color: white;
+      padding: 14px 20px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .ticket-header-left { display: flex; align-items: center; gap: 12px; }
+    .ticket-app-badge {
+      background: #5e6ad2; color: white; font-size: 11px; font-weight: 700;
+      padding: 3px 8px; border-radius: 4px; letter-spacing: .3px;
+    }
+    .ticket-id { font-size: 13px; color: #8892b0; font-family: monospace; }
+    .ticket-header-right { display: flex; align-items: center; gap: 8px; }
+    .ticket-status {
+      display: flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,.1); border-radius: 20px;
+      padding: 4px 10px; font-size: 11px; font-weight: 600; color: #fca5a5;
+    }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #ef4444; }
+
+    .ticket-creating {
+      padding: 16px 20px; display: flex; align-items: center; gap: 10px;
+      font-size: 13px; color: #888; border-bottom: 1px solid #f0f0f0;
+      background: #fffbf0;
+    }
+    .ticket-creating .spinner { border-top-color: #5e6ad2; }
+
+    .ticket-body { padding: 20px 24px; }
+
+    .ticket-title {
+      font-size: 17px; font-weight: 700; color: #1a1a2e;
+      margin-bottom: 16px; line-height: 1.4;
+    }
+
+    .ticket-meta {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px; margin-bottom: 20px; padding-bottom: 20px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .meta-item { display: flex; flex-direction: column; gap: 4px; }
+    .meta-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #aaa; }
+    .meta-value { font-size: 13px; color: #333; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+    .avatar {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #5e6ad2; color: white; font-size: 10px;
+      font-weight: 700; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .priority-urgent { color: #e0523a; }
+    .priority-dot { width: 8px; height: 8px; border-radius: 50%; background: #e0523a; }
+
+    .ticket-labels { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+    .label-chip {
+      padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+    }
+    .label-chip.compliance { background: #fff0ee; color: #e0523a; }
+    .label-chip.stripe     { background: #eef0ff; color: #5e6ad2; }
+    .label-chip.escalation { background: #fff8e1; color: #b07800; }
+    .label-chip.auto       { background: #f0fdf4; color: #166534; }
+
+    .ticket-section-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .5px; color: #aaa; margin-bottom: 8px;
+    }
+    .ticket-description {
+      background: #f8f9fc; border-radius: 8px; padding: 14px 16px;
+      font-size: 13px; line-height: 1.7; color: #444; white-space: pre-wrap;
+      margin-bottom: 20px; max-height: 200px; overflow-y: auto;
+    }
+    .ticket-thread-preview {
+      background: #f8f9fc; border-radius: 8px; padding: 14px 16px;
+      font-size: 12px; color: #555; line-height: 1.6; margin-bottom: 20px;
+      max-height: 160px; overflow-y: auto;
+    }
+    .thread-line { margin-bottom: 6px; }
+    .thread-line .tl-role { font-weight: 700; color: #333; }
+
+    .ticket-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 24px; border-top: 1px solid #f0f0f0; background: #fafafa;
+    }
+    .ticket-footer-note { font-size: 12px; color: #aaa; }
+    .view-btn {
+      background: #5e6ad2; color: white; border: none; border-radius: 8px;
+      padding: 9px 18px; font-size: 13px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; gap: 6px; transition: background .15s;
+    }
+    .view-btn:hover { background: #4e5bb8; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="brand">Stripe SME API <span>↗</span></div>
+    <div class="subtitle">Powered by NexaPay institutional knowledge</div>
+  </div>
+  <div class="subtitle" style="text-align:right">Built with <span style="color:#635bff;font-weight:600">Hyde</span> · Bootcamp Demo</div>
+</header>
+
+<div class="container">
+
+  <div class="intro">
+    <h2>What does a specialist AI actually look like in practice?</h2>
+    <p>Each question is answered by two systems side by side. For context-dependent questions, the SME API asks targeted clarifying questions, incorporates your answers, and goes deeper — grounded in NexaPay's own agreements, compliance history, and past resolved Q&amp;As.</p>
+  </div>
+
+  <div class="question-nav">
+    <button class="q-btn active" onclick="selectQuestion(0)">
+      <span class="camp-label">Camp 1 · Direct Answer</span>
+      Refund fee question
+    </button>
+    <button class="q-btn" onclick="selectQuestion(1)">
+      <span class="camp-label">Camp 2 · Context-Dependent</span>
+      BNPL integration
+    </button>
+    <button class="q-btn" onclick="selectQuestion(2)">
+      <span class="camp-label">Camp 3 · Grey Area</span>
+      Restricted account liability
+    </button>
+  </div>
+
+  <div class="question-box">
+    <div class="q-icon">💬</div>
+    <div>
+      <div class="q-meta" id="q-camp"></div>
+      <div class="q-text" id="q-text"></div>
+    </div>
+  </div>
+
+  <div class="comparison">
+    <div class="panel generic">
+      <div class="panel-header"><div class="dot"></div>Generic LLM (ChatGPT)</div>
+      <div class="panel-body"><div class="response-text" id="generic-text"></div></div>
+    </div>
+    <div class="panel specialist">
+      <div class="panel-header"><div class="dot"></div>Stripe SME API — NexaPay</div>
+      <div class="panel-body"><div id="specialist-content"></div></div>
+    </div>
+  </div>
+
+  <div class="insight-bar" id="insight-bar">
+    <h4>Why the specialist wins here</h4>
+    <p id="insight-text"></p>
+  </div>
+
+  <!-- Linear ticket card — rendered when escalation fires -->
+  <div id="ticket-section">
+    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#aaa;margin-bottom:10px;">
+      🎫 Linear — Compliance Ticket (Auto-created)
+    </div>
+    <div class="ticket-card" id="ticket-card"></div>
+  </div>
+
+  <!-- Jira ticket card — rendered for Q3 CRO escalation -->
+  <div id="jira-ticket-section">
+    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#0052cc;margin-bottom:10px;margin-top:20px;">
+      🔵 Jira — CRO Escalation Ticket (Auto-created)
+    </div>
+    <div class="jira-card" id="jira-card"></div>
+  </div>
+
+</div>
+
+<script>
+const API_URL   = "http://localhost:8000/ask";
+const MAX_TURNS = 3; // max follow-up rounds after initial answer
+
+const QUESTIONS = [
+  {
+    camp: "Camp 1 — Direct Answer",
+    text: "We refunded a transaction, do we still owe Stripe their fee?",
+    generic: "**Short answer:** Yes — you still owe Stripe fees even if you refund a transaction.\n\nStripe does not return the original processing fee. In many cases, a refund itself is treated as a new \"charge event\" that can incur a fee.\n\n**Agreement-by-agreement breakdown:**\n\n**1) Pricing Policy** — YES, you owe fees (and possibly new ones).\nRefunds are explicitly treated as a \"Charge Event.\" Stripe will charge the fixed fee applicable to that transaction again. Even beyond losing the original fee, you may incur an additional fixed fee for the refund itself.\n\n**2) Services Agreement** — YES, fees governed by Pricing Agreement → not refunded.\nThe SSA ties all payment activity (including refunds) to the Pricing Policy. No override here — it inherits the same \"fees still apply\" logic.\n\n**3) Payments / Refund Docs** — YES, you lose the original fee; usually no extra fee for standard pricing.\n\"Stripe's processing fees from the original transaction aren't returned.\" For most payment methods, no additional fee to issue the refund, but you still lose the original fee. Some payment types (e.g., bank transfers) may have additional fees.\n\n**4) IC+ / Custom Pricing** — YES, fees still apply, sometimes more explicitly.\nStripe no longer returns variable fees on refunded transactions and charges a fixed fee for refunds. Refunds can be strictly worse: lose original fee + pay additional refund-related fees.\n\n**5) Connect / Platform Terms** — YES, fees persist; liability depends on who holds the balance.\nRefunds are debited from your platform or connected account balance. You bear: the refund amount + original Stripe fee + internal complexity of who absorbs it.\n\n**Bottom line:** Customer gets 100% back. You do NOT get Stripe's fee back. You may pay an additional fee for the refund event depending on pricing. A refund is always a net loss to you, not neutral.",
+    insight: "ChatGPT's answer is thorough — it covers all 5 Stripe agreements accurately. But that's exactly the problem: an engineer gets a 5-scenario breakdown and still has to figure out which one applies to NexaPay. The SME API skips the generic survey and goes straight to what matters: NexaPay is on blended pricing with Custom Connect accounts, the SSA Section 7.1(a) non-refundable clause applies, and your Finance team already resolved this exact scenario in August 2023 with a SGD 12,000 refund. One answer, zero ambiguity, grounded in your own history.",
+  },
+  {
+    camp: "Camp 2 — Context-Dependent",
+    text: "We want to offer a 'buy now, pay later' option to customers through Stripe. What do we need to have in place?",
+    generic: "To offer Buy Now, Pay Later (BNPL) through Stripe, you're not just \"turning on a payment method\" — you're plugging into a set of financing partners (Affirm, Afterpay/Clearpay, Klarna) with specific requirements across integration, eligibility, compliance, and operations.\n\n**1) A supported Stripe setup**\nHave an active Stripe account in a supported country. Use Stripe Payments (Checkout, Payment Element, or custom integration). Turn on BNPL providers in your Stripe Dashboard or enable them via the Payment Element.\n\n**2) Frontend integration**\nUse Stripe Checkout or Payment Element — these automatically show BNPL options only when eligible (cart size, country, currency) and handle provider-specific flows. Your checkout must pass: amount, currency, and customer location.\n\n**3) Eligibility requirements (very important)**\nBNPL options are not always shown. They depend on: transaction amount thresholds (e.g. $50–$30,000), customer country (Klarna US/EU, Afterpay US/AU/UK), currency, and merchant category. Stripe handles most of this automatically.\n\n**4) Business + compliance requirements**\nBecause BNPL is a form of lending: clear refund and return policies, transparent pricing, legitimate business model. You may also need to agree to provider-specific terms (Klarna, Affirm) and comply with consumer financing disclosure requirements.\n\n**5) Webhooks + backend handling**\nBNPL payments are often asynchronous. Handle events: payment_intent.succeeded, payment_intent.requires_action, payment_intent.payment_failed. Do not fulfil orders until payment is confirmed.\n\n**6) Refund + dispute handling**\nSupport refunds via Stripe API/Dashboard. Customer repayment plans are handled by the BNPL provider. You still lose Stripe fees on refunds. Refunds go through Stripe → provider adjusts customer loan.\n\n**7) Settlement and cash flow**\nYou typically get paid upfront (minus fees) by Stripe. The BNPL provider takes on customer credit risk — this is the main advantage vs. offering financing yourself.\n\n**8) Pricing**\nBNPL fees are higher than card fees (often ~4–6%+ per transaction). Decide whether to absorb the cost (increase conversion) or pass it indirectly via pricing.\n\n**9) Optional but high-impact: UX + conversion**\nShow \"Pay in installments\" messaging on product pages, highlight monthly price (e.g. \"$50/month with Klarna\"), use Stripe's messaging widgets.\n\n**Bottom line:** Stripe Payments integration + BNPL methods enabled + eligibility-compatible pricing/geography/product + clear policies + webhook handling + operational readiness for higher fees.",
+    insight: "ChatGPT's 9-step answer is accurate and comprehensive — but it assumes NexaPay is starting from zero. It doesn't know that Grab was already evaluated and deprioritised (GMV threshold too high for most merchants), that Atome's term sheet is actively under legal review, or that a direct integration bypasses Stripe's BNPL fee structure entirely. Instead of sending an engineer down a generic 9-step checklist, the SME API asks the one question that reframes the whole answer — and then gives NexaPay-specific next steps grounded in what's already been decided.",
+    followUpHints: [
+      "e.g. We're integrating Atome directly — not via Stripe. We're live in Singapore and Malaysia. Atome term sheet is under legal review.",
+      "e.g. Our merchants average SGD 180–400 order value. What are the concrete engineering steps we need to take?",
+      "e.g. What do we need to update in our merchant terms and compliance process before going live?",
+    ],
+  },
+  {
+    camp: "Camp 3 — Grey Area / Escalation",
+    text: "We discovered that one of our connected accounts has been processing payments for a business type on Stripe's restricted list — without our knowledge. Are we, as the platform, liable under our agreement?",
+    generic: "**Short answer:** Potentially yes — platforms on Stripe Connect can be held responsible, even if you didn't know. It depends on your setup, but Stripe's agreements generally push compliance responsibility up to the platform.\n\n**1) Core principle from Stripe's Services Agreement**\nStripe requires that you (the platform) ensure your connected accounts comply with Stripe's terms and restricted business list, and that you are responsible for activity on accounts you facilitate. Lack of knowledge is not a full defense if your platform enabled the activity.\n\n**2) Connect-specific terms (key driver of liability)**\nYou must: perform due diligence/onboarding checks on connected accounts, ensure they don't engage in prohibited or restricted activities, and monitor for ongoing compliance. Stripe reserves the right to suspend or terminate accounts (including your platform), hold funds or claw back payouts, and shift financial liability to the platform — especially if you didn't have adequate controls in place.\n\n**3) Liability depends on your Connect model**\n**Standard accounts (lowest risk):** Stripe has a direct relationship with the connected account; liability is more on the merchant. You can still face platform-level enforcement if you systematically fail to police activity.\n**Express / Custom accounts (higher risk):** You have more control over onboarding and UX; Stripe relies more on you to vet and monitor users. You are more likely to be held contractually and operationally responsible.\n\n**4) What \"liable\" actually means in practice**\nEven if not legally \"at fault\" in a strict sense, Stripe can: reverse payments/recover losses from your platform balance, impose fines or fees, pause payouts, terminate your Stripe account. The risk is economic + platform continuity, not just legal exposure.\n\n**5) Key nuance: restricted vs prohibited**\nProhibited businesses → strictly banned → highest risk.\nRestricted businesses → allowed only with approval.\nIf the account was restricted but not approved → still a violation. If prohibited → more severe consequences.\n\n**Bottom line:** Yes, you can be held responsible even without knowledge. The more control your platform has (Express/Custom), the greater your exposure. Stripe expects platforms to actively prevent and monitor restricted activity.\n\n**What you should do immediately:** Stop the activity (suspend the account). Notify Stripe proactively. Review your onboarding checks and ongoing monitoring systems. Document that this was unintentional and actively remediated.",
+    insight: "ChatGPT's answer is solid — it correctly identifies Custom accounts as highest risk, advises suspending the account, and recommends notifying Stripe proactively. But it's working blind. It doesn't know NexaPay already runs 100% Custom accounts (so the liability question is settled), that this exact incident happened in November 2024 (merchant #4821, SGD 18,400 in volume), or that NexaPay's documented KYC trail was the reason Stripe took no platform-level action. The SME API doesn't just describe the risk framework — it tells you what NexaPay did last time, what worked, and what compliance gaps still need fixing before it happens again.",
+    followUpHints: [
+      "e.g. We use Custom accounts. The merchant expanded scope post-onboarding without telling us. We have full KYC docs and a documented compliance trail from onboarding.",
+      "e.g. We've suspended the account's payouts. What do we do next — specifically, how do we approach Stripe?",
+      "e.g. What do we need to fix in our monitoring to prevent this happening again?",
+    ],
+  },
+];
+
+// ── State ──────────────────────────────────────────────────────────────────
+let currentIndex        = 0;
+let currentController   = null;
+let conversationHistory = [];
+let turnCount           = 0;
+let initialQuestion     = "";
+
+// ── Entry point ────────────────────────────────────────────────────────────
+function selectQuestion(idx) {
+  currentIndex    = idx;
+  turnCount       = 0;
+  initialQuestion = QUESTIONS[idx].text;
+
+  // Seed history with the user's initial question so conversation always
+  // starts with a user message — required by the Anthropic API.
+  conversationHistory = [{ role: "user", content: initialQuestion }];
+
+  document.querySelectorAll(".q-btn").forEach((b,i) => b.classList.toggle("active", i===idx));
+  const q = QUESTIONS[idx];
+  document.getElementById("q-camp").textContent       = q.camp;
+  document.getElementById("q-text").textContent       = q.text;
+  document.getElementById("generic-text").innerHTML = fmt(q.generic);
+  document.getElementById("insight-bar").classList.remove("visible");
+  document.getElementById("ticket-section").classList.remove("visible");
+  document.getElementById("jira-ticket-section").classList.remove("visible");
+
+  callAPI(q.text, [], false);
+}
+
+// ── API call ───────────────────────────────────────────────────────────────
+async function callAPI(question, conversation, forceAnswer = false) {
+  if (currentController) currentController.abort();
+  currentController = new AbortController();
+  setLoading("Querying Stripe SME API…");
+
+  try {
+    const resp = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, context: {}, conversation, force_answer: forceAnswer }),
+      signal: currentController.signal,
+    });
+    if (!resp.ok) throw new Error(`API returned ${resp.status}`);
+    const data = await resp.json();
+    handleResponse(data, question);
+  } catch (err) {
+    if (err.name !== "AbortError") renderError(err.message);
+  }
+}
+
+// ── Response router ────────────────────────────────────────────────────────
+function handleResponse(data, questionSent) {
+  const q = QUESTIONS[currentIndex];
+  showInsight(q.insight);
+
+  if (data.type === "clarification") {
+    // Store in history as assistant message
+    const assistantMsg = `${data.clarifying_question} (This matters because: ${data.why_it_matters})`;
+    conversationHistory.push({ role: "assistant", content: assistantMsg });
+
+    renderThread([
+      ...buildThreadMessages(),
+      { kind: "clarify", clarifyQ: data.clarifying_question, whyItMatters: data.why_it_matters },
+    ], true /* showInput */);
+
+  } else if (data.type === "answer" || data.type === "escalation") {
+    const content = data.content;
+    conversationHistory.push({ role: "assistant", content });
+
+    const isEscalation = data.type === "escalation";
+    // Q3 always needs executive escalation — show Jira CTA on any final response
+    const isQ3Final = (currentIndex === 2);
+    const thread = [
+      ...buildThreadMessages(),
+      { kind: isEscalation ? "escalation" : "answer", text: content },
+      ...(isEscalation ? [{ kind: "ticket-toast" }] : []),
+      ...(isQ3Final ? [{ kind: "jira-cta" }] : []),
+    ];
+
+    const canGoDeeper = !isEscalation && !isQ3Final && turnCount < MAX_TURNS && q.followUpHints;
+    renderThread(thread, canGoDeeper);
+
+    if (isEscalation) {
+      setTimeout(() => createTicket(initialQuestion, content), 800);
+    }
+    if (isQ3Final) {
+      setTimeout(() => createJiraTicket(initialQuestion, content), isEscalation ? 1800 : 800);
+    }
+  }
+}
+
+// ── Build display thread from conversationHistory ──────────────────────────
+// conversationHistory alternates: [user, assistant, user, assistant …]
+// We reconstruct bubble objects for display
+function buildThreadMessages() {
+  const bubbles = [];
+  for (let i = 0; i < conversationHistory.length; i++) {
+    const m = conversationHistory[i];
+    if (m.role === "user" && i > 0) {
+      // Only show user messages after the first (which is shown in the question box)
+      bubbles.push({ kind: "user", text: m.content });
+    }
+  }
+  return bubbles;
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function renderThread(bubbles, showInput) {
+  const q = QUESTIONS[currentIndex];
+  const hint = q.followUpHints ? q.followUpHints[Math.min(turnCount, q.followUpHints.length - 1)] : "";
+
+  let html = `<div class="thread">`;
+
+  for (const b of bubbles) {
+    if (b.kind === "user") {
+      html += `
+        <div class="bubble user">
+          <div class="bubble-label">👤 Your answer</div>
+          ${fmt(b.text)}
+        </div>`;
+    } else if (b.kind === "clarify") {
+      html += `
+        <div class="bubble api-clarify">
+          <div class="bubble-label">⚠ Stripe SME API — Needs Clarification</div>
+          <div style="margin-bottom:8px"><strong>Question:</strong> ${fmt(b.clarifyQ)}</div>
+          <div style="font-size:13px;color:#888;font-style:italic"><strong>Why this matters:</strong> ${fmt(b.whyItMatters)}</div>
+        </div>`;
+    } else if (b.kind === "answer") {
+      html += `
+        <div class="bubble api">
+          <div class="bubble-label">✓ Stripe SME API — Concrete Answer</div>
+          <div class="type-badge answer" style="margin-bottom:10px">Direct Answer</div>
+          <div class="response-text">${fmt(b.text)}</div>
+        </div>`;
+    } else if (b.kind === "escalation") {
+      html += `
+        <div class="bubble api">
+          <div class="bubble-label">↑ Stripe SME API — Escalation</div>
+          <div class="type-badge escalation" style="margin-bottom:10px">Escalation Required</div>
+          <div class="response-text">${fmt(b.text)}</div>
+        </div>`;
+    } else if (b.kind === "ticket-toast") {
+      html += `
+        <div class="ticket-toast">
+          <span class="toast-icon">🎫</span>
+          <span>Compliance ticket auto-created and assigned to <strong>Jane Lim (CCO)</strong> — <a onclick="document.getElementById('ticket-section').scrollIntoView({behavior:'smooth'})">view ticket ↓</a></span>
+        </div>`;
+    } else if (b.kind === "jira-cta") {
+      html += `
+        <div class="jira-cta">
+          <div class="jira-cta-left">
+            <div class="jira-logo">🔵</div>
+            <div class="jira-cta-text">
+              <strong>Escalating to CRO via Jira</strong>
+              <small>This issue requires executive review — auto-creating a Jira ticket and notifying the CRO.</small>
+            </div>
+          </div>
+          <button class="jira-open-btn" onclick="document.getElementById('jira-ticket-section').scrollIntoView({behavior:'smooth'})">View Jira Ticket ↓</button>
+        </div>`;
+    }
+  }
+
+  html += `</div>`; // end thread
+
+  if (showInput && turnCount < MAX_TURNS) {
+    const isFirstReply = (turnCount === 0);
+    const label = isFirstReply ? "Your answer" : "Ask a follow-up";
+    const chipText = hint.startsWith("e.g. ") ? hint.slice(5) : hint;
+    html += `
+      <div class="reply-area" id="reply-area">
+        <label>${label}</label>
+        ${hint ? `
+        <div class="suggestions-label">Quick fill</div>
+        <div class="suggestions">
+          <div class="suggestion-chip" onclick="fillSuggestion(this)">${esc(chipText)}</div>
+        </div>` : ""}
+        <textarea id="reply-input" placeholder="${esc(hint)}"></textarea>
+        <div class="depth-indicator">Turn ${turnCount + 1} of ${MAX_TURNS}</div>
+        <div class="btn-row">
+          <button class="reply-btn" id="submit-btn" onclick="submitReply()">
+            <span>${isFirstReply ? "Submit & get concrete answer" : "Submit follow-up"}</span>
+            <span>→</span>
+          </button>
+          <button class="reset-btn" onclick="selectQuestion(${currentIndex})">↺ Reset</button>
+        </div>
+      </div>`;
+  } else if (!showInput) {
+    html += `
+      <div class="btn-row" style="margin-top:16px">
+        <button class="reset-btn" onclick="selectQuestion(${currentIndex})">↺ Start over</button>
+      </div>`;
+  } else {
+    html += `
+      <div style="margin-top:16px;font-size:13px;color:#888;background:#f8f8f8;border-radius:8px;padding:12px 14px;">
+        💡 For further guidance on this issue, escalate to your CCO or Stripe account manager with the full conversation thread above.
+      </div>
+      <div class="btn-row" style="margin-top:12px">
+        <button class="reset-btn" onclick="selectQuestion(${currentIndex})">↺ Start over</button>
+      </div>`;
+  }
+
+  document.getElementById("specialist-content").innerHTML = html;
+}
+
+// ── Submit reply ───────────────────────────────────────────────────────────
+function submitReply() {
+  const input = document.getElementById("reply-input");
+  const userText = (input ? input.value : "").trim();
+  if (!userText) {
+    input.style.borderColor = "#e0523a";
+    return;
+  }
+
+  const btn = document.getElementById("submit-btn");
+  if (btn) btn.disabled = true;
+
+  // Add user reply to history BEFORE slicing, so context is complete
+  conversationHistory.push({ role: "user", content: userText });
+  turnCount++;
+
+  // Conversation passed to API = everything except the last user turn
+  // (the API appends the new user message itself internally)
+  const conversationForAPI = conversationHistory.slice(0, -1);
+
+  // Build enriched question: original + all user context replies so far
+  const userReplies = conversationHistory
+    .filter(m => m.role === "user")
+    .slice(1) // skip the initial question (already in conversation seed)
+    .map(m => `Additional context: ${m.content}`)
+    .join("\n");
+
+  const questionWithContext = initialQuestion +
+    (userReplies ? "\n\n" + userReplies : "");
+
+  // After a user answers a clarification, force answer — skip re-classification
+  const isDirectClarificationReply = turnCount === 1;
+  callAPI(questionWithContext, conversationForAPI, isDirectClarificationReply);
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function showInsight(insight) {
+  document.getElementById("insight-text").textContent = insight;
+  document.getElementById("insight-bar").classList.add("visible");
+}
+
+function setLoading(msg) {
+  document.getElementById("specialist-content").innerHTML = `
+    <div class="loading"><div class="spinner"></div>${esc(msg)}</div>`;
+}
+
+function renderError(msg) {
+  document.getElementById("specialist-content").innerHTML = `
+    <div class="error-msg">⚠ ${esc(msg)}<br><br>Make sure the API is running:<br><code>uvicorn main:app --reload</code></div>`;
+}
+
+function esc(str) {
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function fmt(str) {
+  return esc(str)
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\n/g, "<br>");
+}
+
+// ── Ticket creation ────────────────────────────────────────────────────────
+function createTicket(question, escalationContent) {
+  const section = document.getElementById("ticket-section");
+  const card    = document.getElementById("ticket-card");
+  const ticketId = "COMP-2025-" + Math.floor(100 + Math.random() * 900);
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const dateStr = now.toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" });
+
+  // Title: truncate question to 80 chars
+  const title = question.length > 80 ? question.slice(0, 77) + "…" : question;
+
+  // Build conversation thread preview for the ticket description
+  const threadLines = conversationHistory.map(m => {
+    const role = m.role === "user" ? "Engineer" : "Stripe SME API";
+    return `${role}: ${m.content.slice(0, 200)}${m.content.length > 200 ? "…" : ""}`;
+  }).join("\n\n");
+
+  // Show loading state first
+  section.classList.add("visible");
+  card.innerHTML = `
+    <div class="ticket-header">
+      <div class="ticket-header-left">
+        <span class="ticket-app-badge">Linear</span>
+        <span class="ticket-id">${ticketId}</span>
+      </div>
+    </div>
+    <div class="ticket-creating">
+      <div class="spinner"></div>
+      Creating compliance ticket and notifying CCO…
+    </div>`;
+
+  section.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+  // After short delay, render the full ticket
+  setTimeout(() => {
+    card.innerHTML = `
+      <div class="ticket-header">
+        <div class="ticket-header-left">
+          <span class="ticket-app-badge">Linear</span>
+          <span class="ticket-id">${esc(ticketId)}</span>
+        </div>
+        <div class="ticket-header-right">
+          <div class="ticket-status"><div class="status-dot"></div>Open</div>
+        </div>
+      </div>
+
+      <div class="ticket-body">
+        <div class="ticket-title">${esc(title)}</div>
+
+        <div class="ticket-meta">
+          <div class="meta-item">
+            <div class="meta-label">Assignee</div>
+            <div class="meta-value">
+              <div class="avatar">JL</div> Jane Lim (CCO)
+            </div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Reporter</div>
+            <div class="meta-value">🤖 Stripe SME API</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Priority</div>
+            <div class="meta-value priority-urgent">
+              <div class="priority-dot"></div> Urgent
+            </div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Created</div>
+            <div class="meta-value">${esc(dateStr)} · ${esc(timeStr)}</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Team</div>
+            <div class="meta-value">Compliance &amp; Legal</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Source</div>
+            <div class="meta-value">Auto-escalated</div>
+          </div>
+        </div>
+
+        <div class="ticket-labels">
+          <span class="label-chip compliance">compliance</span>
+          <span class="label-chip stripe">stripe</span>
+          <span class="label-chip escalation">escalation</span>
+          <span class="label-chip auto">auto-created</span>
+        </div>
+
+        <div class="ticket-section-label">Original Question</div>
+        <div class="ticket-description">${esc(question)}</div>
+
+        <div class="ticket-section-label">Conversation Thread</div>
+        <div class="ticket-thread-preview">
+          ${threadLines.split("\n\n").map(line => {
+            const colonIdx = line.indexOf(":");
+            const role = line.slice(0, colonIdx);
+            const msg  = line.slice(colonIdx + 1).trim();
+            return `<div class="thread-line"><span class="tl-role">${esc(role)}:</span> ${esc(msg)}</div>`;
+          }).join("")}
+        </div>
+
+        <div class="ticket-section-label">SME API Assessment</div>
+        <div class="ticket-description">${esc(escalationContent)}</div>
+      </div>
+
+      <div class="ticket-footer">
+        <span class="ticket-footer-note">Auto-generated by Stripe SME API · No manual handoff required</span>
+        <button class="view-btn" onclick="alert('In production this opens the live Linear ticket.')">
+          Open in Linear ↗
+        </button>
+      </div>`;
+  }, 1200);
+}
+
+// ── Jira ticket creation (Q3 — CRO escalation) ────────────────────────────
+function createJiraTicket(question, escalationContent) {
+  const section = document.getElementById("jira-ticket-section");
+  const card    = document.getElementById("jira-card");
+  const ticketKey = "NP-" + Math.floor(1000 + Math.random() * 9000);
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const dateStr = now.toLocaleDateString("en-SG", { day: "numeric", month: "short", year: "numeric" });
+
+  const title = question.length > 80 ? question.slice(0, 77) + "…" : question;
+
+  // Show section with loading state
+  section.classList.add("visible");
+  card.innerHTML = `
+    <div class="jira-card-header">
+      <div class="jira-header-left">
+        <span class="jira-badge">Jira</span>
+        <span class="jira-ticket-key">${esc(ticketKey)}</span>
+      </div>
+    </div>
+    <div class="jira-creating">
+      <div class="spinner"></div>
+      Connecting to Jira API — creating CRO escalation ticket…
+    </div>`;
+
+  section.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+  // Render full ticket after simulated API call
+  setTimeout(() => {
+    card.innerHTML = `
+      <div class="jira-card-header">
+        <div class="jira-header-left">
+          <span class="jira-badge">Jira</span>
+          <span class="jira-ticket-key">${esc(ticketKey)}</span>
+        </div>
+        <div class="jira-status-chip"><div class="jira-status-dot"></div>Open</div>
+      </div>
+
+      <div class="jira-body">
+        <div class="jira-issue-title">[CRO Escalation] ${esc(title)}</div>
+
+        <div class="jira-meta">
+          <div class="jira-meta-item">
+            <div class="jira-meta-label">Assignee</div>
+            <div class="jira-meta-value">
+              <div class="jira-avatar">CRO</div> Priya Mehta (CRO)
+            </div>
+          </div>
+          <div class="jira-meta-item">
+            <div class="jira-meta-label">Reporter</div>
+            <div class="jira-meta-value">🤖 Stripe SME API</div>
+          </div>
+          <div class="jira-meta-item">
+            <div class="jira-meta-label">Priority</div>
+            <div class="jira-meta-value jira-priority-critical">🔴 Critical</div>
+          </div>
+          <div class="jira-meta-item">
+            <div class="jira-meta-label">Created</div>
+            <div class="jira-meta-value">${esc(dateStr)} · ${esc(timeStr)}</div>
+          </div>
+          <div class="jira-meta-item">
+            <div class="jira-meta-label">Project</div>
+            <div class="jira-meta-value">NexaPay Risk &amp; Compliance</div>
+          </div>
+          <div class="jira-meta-item">
+            <div class="jira-meta-label">Source</div>
+            <div class="jira-meta-value">Auto-escalated</div>
+          </div>
+        </div>
+
+        <div class="jira-labels">
+          <span class="jira-label">restricted-merchant</span>
+          <span class="jira-label">platform-liability</span>
+          <span class="jira-label">stripe-compliance</span>
+          <span class="jira-label">cro-review</span>
+        </div>
+
+        <div class="jira-section-label">Issue Summary</div>
+        <div class="jira-description">${esc(escalationContent)}</div>
+
+        <div class="jira-api-note">
+          <span class="note-icon">🔗</span>
+          <span><strong>Integrated with Jira API</strong> — This ticket was auto-created via <code>POST /rest/api/3/issue</code> using NexaPay's Jira service account. In production, the CRO receives a Slack DM and email notification within 60 seconds of ticket creation. The full conversation thread and compliance documentation are attached.</span>
+        </div>
+      </div>
+
+      <div class="jira-footer">
+        <span class="jira-footer-note">Auto-generated by Stripe SME API · Assigned to CRO</span>
+        <button class="jira-view-btn" onclick="alert('In production this opens the live Jira issue.')">
+          Open in Jira ↗
+        </button>
+      </div>`;
+  }, 1400);
+}
+
+// ── Quick fill ─────────────────────────────────────────────────────────────
+function fillSuggestion(chip) {
+  const textarea = document.getElementById("reply-input");
+  if (!textarea) return;
+  textarea.value = chip.textContent;
+  textarea.style.borderColor = "#635bff";
+  textarea.focus();
+  // Mark chip as selected
+  document.querySelectorAll(".suggestion-chip").forEach(c => c.classList.remove("selected"));
+  chip.style.background = "#635bff";
+  chip.style.color = "white";
+  chip.style.borderColor = "#635bff";
+}
+
+// Boot
+selectQuestion(0);
+</script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+NEXAPAY COMPLIANCE AND ONBOARDING PROCEDURES
+Source: Internal Compliance Documentation — Last updated January 2025
+
+MERCHANT ONBOARDING FLOW (CUSTOM ACCOUNT MODEL)
+NexaPay operates Custom Stripe Connect accounts, meaning NexaPay is fully responsible for KYC/KYB and compliance gating before a merchant goes live. The following steps are mandatory before a connected account can process payments:
+
+Step 1 — Business Verification
+  - Valid business registration certificate (ACRA for Singapore, SSM for Malaysia, NIB for Indonesia)
+  - Proof of business address (utility bill or bank statement, dated within 3 months)
+  - UBO (Ultimate Beneficial Owner) declaration for any entity with >25% shareholding
+
+Step 2 — Identity Verification
+  - NRIC/passport for all directors and UBOs
+  - Liveness check via Jumio (integrated since August 2023)
+  - Sanctions and PEP screening via ComplyAdvantage (real-time, automated)
+
+Step 3 — Business Category Review
+  - Merchant's primary business category is manually reviewed against:
+    (a) Stripe's Restricted Business list (stripe.com/en-sg/legal/restricted-businesses)
+    (b) NexaPay's internal prohibited category list (more conservative than Stripe's)
+  - Categories flagged for enhanced due diligence: licensed moneylenders, gambling-adjacent, firearms, adult content, crypto exchanges
+  - Any merchant in a Stripe-restricted category requires written approval from NexaPay's Chief Compliance Officer (CCO) before Stripe onboarding is initiated
+
+Step 4 — Stripe Account Creation
+  - Connected account is created via Stripe API only after Steps 1–3 are cleared
+  - Business category (MCC code) is set at account creation and locked
+  - NexaPay's compliance team reviews the assigned MCC against the merchant's self-declared category
+
+Step 5 — Transaction Monitoring Setup
+  - Merchant is enrolled in NexaPay's automated transaction monitoring system
+  - Velocity rules applied: alerts triggered for >SGD 50,000 single transaction, >200% week-on-week volume spike, or unusual cross-border patterns
+
+ONGOING MONITORING
+  - Monthly automated review of all connected accounts against updated Stripe restricted business list
+  - Quarterly manual review for merchants in flagged categories
+  - Annual full KYB refresh required for all merchants processing >SGD 1M/year
+
+INCIDENT RESPONSE — RESTRICTED BUSINESS VIOLATION
+If a connected account is found to be operating in a Stripe-restricted category without approval:
+  Step 1: Immediate escalation to CCO (Chief Compliance Officer: Jane Lim, jane.lim@nexapay.com)
+  Step 2: Temporary suspension of the connected account's payout capability within 2 hours of discovery
+  Step 3: Internal investigation — review of onboarding documents, MCC assignment, and transaction history
+  Step 4: Notification to Stripe account manager within 24 hours
+  Step 5: Decision on account termination or remediation within 5 business days
+  Step 6: Post-incident review and process gap analysis documented within 30 days
+
+DOCUMENTATION TRAIL
+  - All onboarding decisions are logged in NexaPay's compliance system (Notion + internal database)
+  - Rejection decisions include reason codes and reviewer ID
+  - Approval decisions for restricted categories include CCO sign-off timestamp
+  - All documents retained for 5 years per MAS requirements
+
+KNOWN COMPLIANCE GAPS (as of January 2025 internal review)
+  - Transaction monitoring system does not currently cross-check merchant's actual transaction categories against declared MCC — this is a known gap flagged for Q2 2025 remediation
+  - Manual review cadence for flagged categories is quarterly, not continuous — a fast-growing merchant could shift business model between reviews
