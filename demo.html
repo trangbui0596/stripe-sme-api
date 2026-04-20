@@ -294,11 +294,11 @@
 
     /* ── Vote / feedback ── */
     .vote-row {
-      display: flex; align-items: center; gap: 8px;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
       margin-top: 12px; padding-top: 10px;
       border-top: 1px solid rgba(0,0,0,.06);
     }
-    .vote-label { font-size: 11px; color: #aaa; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+    .vote-label { font-size: 12px; color: #888; font-style: italic; flex: 1; min-width: 160px; }
     .vote-btn {
       background: none; border: 1px solid #e0e0e0; border-radius: 6px;
       padding: 4px 10px; font-size: 15px; cursor: pointer;
@@ -310,15 +310,32 @@
     .vote-btn.voted-down { background: #fff0ee; border-color: #e0523a; }
     .vote-thanks { font-size: 12px; color: #1a9e5c; font-weight: 600; }
 
+    .flag-btn {
+      margin-left: auto; background: none; border: 1px solid #e0e0e0;
+      border-radius: 6px; padding: 4px 12px; font-size: 12px; font-weight: 600;
+      color: #999; cursor: pointer; transition: all .15s; white-space: nowrap;
+    }
+    .flag-btn:hover   { border-color: #e0523a; color: #e0523a; background: #fff0ee; }
+    .flag-btn:disabled { opacity: .4; cursor: default; }
+    .flag-btn.flagged  { background: #fff0ee; border-color: #e0523a; color: #e0523a; }
+
     .vote-feedback {
       display: none; margin-top: 10px;
       background: #fff8f6; border: 1px solid #ffd5cc;
       border-radius: 8px; padding: 12px 14px;
     }
     .vote-feedback.visible { display: block; }
-    .vote-feedback label { font-size: 11px; font-weight: 700; color: #e0523a; text-transform: uppercase; letter-spacing: .4px; display: block; margin-bottom: 6px; }
+    .vote-feedback label { font-size: 11px; font-weight: 700; color: #e0523a; text-transform: uppercase; letter-spacing: .4px; display: block; margin-bottom: 8px; }
+    .reason-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .reason-chip {
+      padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
+      border: 1px solid #ffc5bb; color: #e0523a; background: white;
+      cursor: pointer; transition: all .15s; user-select: none;
+    }
+    .reason-chip:hover { background: #fff0ee; }
+    .reason-chip.selected { background: #e0523a; color: white; border-color: #e0523a; }
     .vote-feedback textarea {
-      width: 100%; min-height: 64px; border: 1px solid #ffc5bb; border-radius: 6px;
+      width: 100%; min-height: 56px; border: 1px solid #ffc5bb; border-radius: 6px;
       padding: 8px 10px; font-size: 13px; font-family: inherit; resize: vertical;
       background: white; color: #1a1a2e;
     }
@@ -1063,14 +1080,24 @@ const _voteData = {}; // id → { question, response }
 function voteHtml(id) {
   return `
     <div class="vote-row" id="vote-row-${id}">
-      <span class="vote-label">Helpful?</span>
+      <span class="vote-label">Help your team get better answers</span>
       <button class="vote-btn" id="vote-up-${id}"   onclick="castVote(${id},'up')">👍</button>
       <button class="vote-btn" id="vote-down-${id}" onclick="castVote(${id},'down')">👎</button>
+      <button class="flag-btn" id="vote-flag-${id}" onclick="castVote(${id},'flag')">🚩 Flag for review</button>
       <span class="vote-thanks" id="vote-thanks-${id}" style="display:none"></span>
     </div>
     <div class="vote-feedback" id="vote-feedback-${id}">
-      <label>What was wrong or missing?</label>
-      <textarea id="vote-text-${id}" placeholder="e.g. The answer didn't account for our Custom Connect setup, or the escalation was premature…"></textarea>
+      <label>What was wrong? <span style="font-weight:400;color:#aaa;text-transform:none;letter-spacing:0">select all that apply</span></label>
+      <div class="reason-chips">
+        <div class="reason-chip" onclick="toggleReason(this)">Answer too generic</div>
+        <div class="reason-chip" onclick="toggleReason(this)">Wrong jurisdiction</div>
+        <div class="reason-chip" onclick="toggleReason(this)">Missed our account setup</div>
+        <div class="reason-chip" onclick="toggleReason(this)">Escalated too quickly</div>
+        <div class="reason-chip" onclick="toggleReason(this)">Should have escalated</div>
+        <div class="reason-chip" onclick="toggleReason(this)">Outdated information</div>
+        <div class="reason-chip" onclick="toggleReason(this)">Missing specific details</div>
+      </div>
+      <textarea id="vote-text-${id}" placeholder="Optional: add more detail…"></textarea>
       <button class="vote-submit-btn" onclick="submitVoteFeedback(${id})">Submit — log as training data</button>
     </div>`;
 }
@@ -1078,27 +1105,42 @@ function voteHtml(id) {
 function castVote(id, rating) {
   const upBtn   = document.getElementById(`vote-up-${id}`);
   const downBtn = document.getElementById(`vote-down-${id}`);
+  const flagBtn = document.getElementById(`vote-flag-${id}`);
   const thanks  = document.getElementById(`vote-thanks-${id}`);
 
   upBtn.disabled   = true;
   downBtn.disabled = true;
+  if (flagBtn) flagBtn.disabled = true;
 
   if (rating === "up") {
     upBtn.classList.add("voted-up");
     thanks.textContent = "✓ Logged as training data — thanks!";
     thanks.style.display = "inline";
     postFeedback(id, "up", "");
-  } else {
+  } else if (rating === "down") {
     downBtn.classList.add("voted-down");
     document.getElementById(`vote-feedback-${id}`).classList.add("visible");
+  } else if (rating === "flag") {
+    flagBtn.classList.add("flagged");
+    flagBtn.disabled = true;
+    thanks.textContent = "🚩 Flagged for CCO review";
+    thanks.style.display = "inline";
+    postFeedback(id, "flag", "flagged for review");
   }
 }
 
+function toggleReason(chip) {
+  chip.classList.toggle("selected");
+}
+
 function submitVoteFeedback(id) {
-  const explanation = (document.getElementById(`vote-text-${id}`).value || "").trim();
+  const feedbackEl = document.getElementById(`vote-feedback-${id}`);
+  const selectedReasons = [...feedbackEl.querySelectorAll(".reason-chip.selected")]
+    .map(c => c.textContent).join(", ");
+  const freeText = (document.getElementById(`vote-text-${id}`).value || "").trim();
+  const explanation = [selectedReasons, freeText].filter(Boolean).join(" | ");
   postFeedback(id, "down", explanation);
-  document.getElementById(`vote-feedback-${id}`).innerHTML =
-    `<span class="vote-thanks">✓ Feedback logged as training data — thank you</span>`;
+  feedbackEl.innerHTML = `<span class="vote-thanks">✓ Feedback logged as training data — thank you</span>`;
 }
 
 async function postFeedback(id, rating, explanation) {
